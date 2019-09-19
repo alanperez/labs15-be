@@ -1,14 +1,24 @@
 const express = require('express');
+const sgMail = require('@sendgrid/mail');
 const db = require('../models/problem-model');
+const Users = require('../models/users-model');
+const dbConf = require('../data/dbConfig');
 
 const router = express.Router();
 
-router.post('/', (req, res) => {
+sgMail.setApiKey(process.env.SEND_KEY);
+
+
+router.post('/', async (req, res) => {
   const {
-    problem_title, problem_description, problem_category, date_created, created_by, admin_id
+    problem_title,
+    problem_description,
+    problem_category,
+    date_created,
+    created_by
   } = req.body;
-  if (!problem_title || !problem_category) {
-    res.status(400).json({ errorMessage: 'You are missing either a category or a problem title' });
+  if (!problem_title || !problem_description || !problem_category || !date_created) {
+    res.status(400).json({ errorMessage: 'Make sure all the required fields are included.' });
   } else {
     db
       .insertProblem({
@@ -16,16 +26,21 @@ router.post('/', (req, res) => {
         problem_description,
         problem_category,
         date_created,
-        created_by,
-        admin_id
+        created_by
       })
 
       .then((id) => {
-        console.log('testing post req');
-        res.json(id);
+        /* const msg = {
+          to: req.body.created_by,
+          from: 'noreply@labs15teamnext.com',
+          subject: 'test 1',
+          html: 'test1!',
+        };
+        sgMail.send(msg); */
+        res.status(200).json({ message: 'Problem has been posted' });
       })
       .catch((err) => {
-        console.log(err);
+        res.status(500).json({ error: `${err}` });
       });
   }
 });
@@ -34,11 +49,27 @@ router.get('/', (req, res) => {
   db
     .getProblems()
     .then((problem) => {
-      res.json(problem);
+      const problemArray = problem.filter((prblm) => prblm.isApproved === true);
+      res.json(problemArray);
     })
     .catch((err) => {
       console.log(err);
       res.status(500).json({ message: 'Error getting problem board' });
+    });
+});
+
+router.get('/popular', (req, res) => {
+  db
+    .getPopularProblems()
+    .then((rated) => {
+      const ratingArr = rated.filter((sorted) => {
+        return sorted.rating >= 1 && sorted.numOfRatings > 10;
+      });
+      res.json(ratingArr);
+    })
+    .catch((err) => {
+      console.log(err);
+      res.status(500).json({ message: 'Error getting popular problems' });
     });
 });
 
@@ -60,6 +91,26 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// post id
+router.post('/:id/signup', async (req, res) => {
+  const { problem_id, full_name, email } = req.body;
+
+  if (!problem_id || !full_name || !email) {
+    res.status(404).json({ message: 'Enter your name and email' });
+  } else {
+    Users.addUser(req.body)
+      .then((user) => {
+        res.status(200).json({
+          message: `new user signed up: ${email}`,
+          user: req.body
+        });
+      })
+      .catch((error) => {
+        res.status(500).json({ message: `error:, ${error}` });
+      });
+  }
+});
+
 router.put('/:id', (req, res) => {
   const { id } = req.params;
   const { problem_title, problem_description, problem_category } = req.body;
@@ -70,13 +121,29 @@ router.put('/:id', (req, res) => {
     });
 });
 
-router.delete('/:id', (req, res) => {
+router.put('/:id/rate', (req, res) => {
   const { id } = req.params;
-  db
-    .deleteProblem(id)
+
+  dbConf('problems')
+    .where({ id })
+    .first()
     .then((problem) => {
-      res.json(problem);
-    });
+      const newRatingFirst = problem.numOfRatings * problem.rating + req.body.rating;
+      problem.numOfRatings += 1;
+      const finalRating = newRatingFirst / problem.numOfRatings;
+
+      problem.rating = Math.round(finalRating * 100) / 100;
+
+      dbConf('problems')
+        .update(problem)
+        .where({ id })
+        .then((finalUser) => {
+          res.status(201).json(problem);
+        })
+        .catch((err) => res.status(500).json({ message: 'something went wrong while rating this problem.' }));
+    })
+    .catch((err) => res.status(404).json({ message: 'unable to find that problem.' }));
 });
+
 
 module.exports = router;

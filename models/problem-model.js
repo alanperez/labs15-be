@@ -5,11 +5,30 @@ module.exports = {
   getProblemsById,
   insertProblem,
   updateProblem,
-  deleteProblem
+  deleteProblem,
+  rateProblem,
+  updateRating,
+  getPopularProblems,
+  getCreatedBy
 };
 
 function getProblems() {
-  return db('problems').select('id', 'problem_title', 'problem_description', 'problem_category', 'date_created', 'created_by');
+  return db('problems').select(
+    'id',
+    'problem_title',
+    'problem_description',
+    'problem_category',
+    'date_created',
+    'created_by',
+    'rating',
+    'numOfRatings',
+    'isApproved',
+    'isAccepting'
+  );
+}
+
+function getCreatedBy() {
+  return db('problems').select('created_by');
 }
 
 function getProblemsById(id) {
@@ -33,4 +52,27 @@ function deleteProblem(id) {
   return db('problems')
     .where('id', id)
     .del();
+}
+
+function rateProblem(id) {
+  return getProblemsById();
+}
+
+function updateRating(id, user) {
+  return db('problems')
+    .where({ id })
+    .update(user);
+}
+
+function getPopularProblems() {
+  return db('problems').select(
+    'id',
+    'problem_title',
+    'problem_description',
+    'problem_category',
+    'rating',
+    'numOfRatings'
+  ).orderBy('numOfRatings','desc').limit(3)
+
+  
 }

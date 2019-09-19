@@ -15,14 +15,12 @@ exports.up = function (knex) {
       .notNullable();
     tbl
       .string('created_by');
-    tbl
-      .integer('admin_id')
-      .unsigned()
-      .notNullable()
-      .references('id')
-      .inTable('admin')
-      .onDelete('RESTRICT')
-      .onUpdate('RESTRICT');
+
+    tbl.float('rating', 8);
+
+    tbl.integer('numOfRatings', 8);
+    tbl.boolean('isApproved').defaultTo(false)
+    tbl.boolean('isAccepting').defaultTo(true)
   });
 };
 exports.down = function (knex) {

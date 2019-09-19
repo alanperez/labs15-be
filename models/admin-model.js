@@ -5,7 +5,10 @@ module.exports = {
   getAdminById,
   addAdmin,
   deleteAdmin,
-  updateAdmin
+  updateAdmin,
+  getByEmail,
+  add,
+  approveProblem
 };
 
 
@@ -28,4 +31,18 @@ function deleteAdmin(id) {
   return db('admin')
     .where('id', id)
     .del();
+}
+
+function getByEmail(filter) {
+  return db('admin')
+    .where('email', '=', filter)
+    .first();
+}
+function add(admin) {
+  return db('admin').insert(admin, 'id');
+}
+
+function approveProblem(id,problem) {
+  console.log('admin model prboel', problem)
+  return db('problems').where({id}).update({isApproved:problem})
 }

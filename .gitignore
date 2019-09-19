@@ -1,6 +1,6 @@
 # env file
 .env
-./config/sendgrid.env
+config/sendgrid.env
 
 # Logs
 logs
@@ -97,3 +97,5 @@ Network Trash Folder
 Temporary Items
 .apdisk
 
+sendgrid.env
+sendgrid.env
